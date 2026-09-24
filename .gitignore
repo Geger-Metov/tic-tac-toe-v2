@@ -1,0 +1,8 @@
+#python files
+__pycache__/
+*.pyc
+
+#own temp files
+PY_T04B_TZ.md
+xz.md
+important.txt
