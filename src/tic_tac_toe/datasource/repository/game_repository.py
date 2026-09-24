@@ -1,9 +1,9 @@
 from uuid import UUID
 from typing import Optional
 
-from app.domain.model.game import Game as DomainGame
-from app.datasource.mapper.domain_data_mapper import to_data, to_domain
-from app.datasource.storage.game_storage import GameStorage
+from tic_tac_toe.domain.model.game import Game as DomainGame
+from tic_tac_toe.datasource.mapper.domain_data_mapper import to_data, to_domain
+from tic_tac_toe.datasource.storage.game_storage import GameStorage
 
 class GameRepo:
     def __init__(self, storage: GameStorage) -> None:

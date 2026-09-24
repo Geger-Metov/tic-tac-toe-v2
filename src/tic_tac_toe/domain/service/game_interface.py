@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from uuid import UUID
 
-from app.domain.model.game import Game
+from tic_tac_toe.domain.model.game import Game
 
 class IGameService(ABC):
     @abstractmethod

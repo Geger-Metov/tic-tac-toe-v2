@@ -1,7 +1,7 @@
-from app.domain.service.game_interface import IGameService
-from app.domain.model.game import Game
-from app.domain.model.board import Board
-from app.datasource.repository.game_repository import GameRepo
+from tic_tac_toe.domain.service.game_interface import IGameService
+from tic_tac_toe.domain.model.game import Game
+from tic_tac_toe.domain.model.board import Board
+from tic_tac_toe.datasource.repository.game_repository import GameRepo
 
 from uuid import UUID
 

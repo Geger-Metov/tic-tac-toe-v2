@@ -1,7 +1,7 @@
-from app.domain.model.game import Game as DomainGame
-from app.domain.model.board import Board as DomainBoard
-from app.web.model.request_model import GameRequest
-from app.web.model.response_model import GameResponse, BoardResponse
+from tic_tac_toe.domain.model.game import Game as DomainGame
+from tic_tac_toe.domain.model.board import Board as DomainBoard
+from tic_tac_toe.web.model.request_model import GameRequest
+from tic_tac_toe.web.model.response_model import GameResponse, BoardResponse
 
 class GameWebMapper:
     @staticmethod

@@ -1,7 +1,7 @@
-from app.datasource.storage.game_storage import GameStorage
-from app.datasource.repository.game_repository import GameRepo
-from app.datasource.service.game_service_impl import GameService
-from app.domain.service.game_interface import IGameService
+from tic_tac_toe.datasource.storage.game_storage import GameStorage
+from tic_tac_toe.datasource.repository.game_repository import GameRepo
+from tic_tac_toe.datasource.service.game_service_impl import GameService
+from tic_tac_toe.domain.service.game_interface import IGameService
 
 class Container:
     """

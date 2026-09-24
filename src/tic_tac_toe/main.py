@@ -1,7 +1,7 @@
 # main.py
 from fastapi import FastAPI
-from app.web.route.game_route import router
-from app.di.container import Container
+from tic_tac_toe.web.route.game_route import router
+from tic_tac_toe.di.container import Container
 
 def create_app() -> FastAPI:
     app = FastAPI(
