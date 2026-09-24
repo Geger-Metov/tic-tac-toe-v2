@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from uuid import UUID
 
-from src.app.web.model.request_model import GameRequest
-from src.app.web.model.response_model import GameResponse
-from src.app.web.mapper.domain_web_mapper import GameWebMapper
-from src.app.domain.service.game_interface import IGameService
-from src.app.domain.model.game import Game
-from src.app.domain.model.board import Board
+from app.web.model.request_model import GameRequest
+from app.web.model.response_model import GameResponse
+from app.web.mapper.domain_web_mapper import GameWebMapper
+from app.domain.service.game_interface import IGameService
+from app.domain.model.game import Game
+from app.domain.model.board import Board
 
 router = APIRouter(prefix="/game", tags=["game"])
 

@@ -1,7 +1,7 @@
-from src.app.domain.service.game_interface import IGameService
-from src.app.domain.model.game import Game
-from src.app.domain.model.board import Board
-from src.app.datasource.repository.game_repository import GameRepo
+from app.domain.service.game_interface import IGameService
+from app.domain.model.game import Game
+from app.domain.model.board import Board
+from app.datasource.repository.game_repository import GameRepo
 
 from uuid import UUID
 

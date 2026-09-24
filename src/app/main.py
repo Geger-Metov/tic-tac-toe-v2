@@ -1,7 +1,7 @@
 # main.py
 from fastapi import FastAPI
-from src.app.web.route.game_route import router
-from src.app.di.container import Container
+from app.web.route.game_route import router
+from app.di.container import Container
 
 def create_app() -> FastAPI:
     app = FastAPI(

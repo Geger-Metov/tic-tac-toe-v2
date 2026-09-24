@@ -1,6 +1,6 @@
-from src.app.domain.model.game import Game as DomainGame
-from src.app.domain.model.board import Board as DomainBoard
-from src.app.datasource.model.game_dts import DataGame, DataBoard
+from app.domain.model.game import Game as DomainGame
+from app.domain.model.board import Board as DomainBoard
+from app.datasource.model.game_dts import DataGame, DataBoard
 
 def to_data(domain: DomainGame) -> DataGame:
     return DataGame(

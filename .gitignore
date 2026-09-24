@@ -1,6 +1,12 @@
 #python files
 __pycache__/
 *.pyc
+.venv/
+
+#secret
+.env
+.env.*
+!.env.example
 
 #own temp files
 PY_T04B_TZ.md

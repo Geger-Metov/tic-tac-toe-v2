@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 import uuid
 
-from src.app.domain.model.board import Board
+from app.domain.model.board import Board
 
 @dataclass
 class Game:

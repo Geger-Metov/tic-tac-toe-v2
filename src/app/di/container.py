@@ -1,7 +1,7 @@
-from src.app.datasource.storage.game_storage import GameStorage
-from src.app.datasource.repository.game_repository import GameRepo
-from src.app.datasource.service.game_service_impl import GameService
-from src.app.domain.service.game_interface import IGameService
+from app.datasource.storage.game_storage import GameStorage
+from app.datasource.repository.game_repository import GameRepo
+from app.datasource.service.game_service_impl import GameService
+from app.domain.service.game_interface import IGameService
 
 class Container:
     """
