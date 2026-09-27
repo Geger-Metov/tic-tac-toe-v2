@@ -1,5 +1,5 @@
 services:
-  # Сервис с вашей базой данных
+  # Сервис с базой данных
   db:
     image: postgres:18-alpine  # Используем готовый официальный образ
     environment:
@@ -17,7 +17,7 @@ services:
       retries: 10
       start_period: 5s
 
-  # Сервис с вашим FastAPI-приложением
+  # Сервис с FastAPI-приложением
   app:
     build: 
       context: .  # Собираем образ из Dockerfile в текущей директории
@@ -32,11 +32,14 @@ services:
     develop:
       watch:
         - action: sync+restart
-          path: ./src
-          target: /app/tic-tac-toe
+          path: ./src/tic_tac_toe
+          target: /app/tic_tac_toe
 
         - action: rebuild
-          path: ./requirements.txt
+          path: ./pyproject.toml
+
+        - action: rebuild
+          path: ./uv.lock
 
 
 # Определяем именованный том для хранения данных PostgreSQL
