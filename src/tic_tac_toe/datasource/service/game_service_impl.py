@@ -1,9 +1,10 @@
+from uuid import UUID
+
 from tic_tac_toe.domain.service.game_interface import IGameService
 from tic_tac_toe.domain.model.game import Game
 from tic_tac_toe.domain.model.board import Board
 from tic_tac_toe.datasource.repository.game_repository import GameRepo
 
-from uuid import UUID
 
 class GameService(IGameService):
     HUMAN_SYMBOL = 1
@@ -14,7 +15,7 @@ class GameService(IGameService):
     def __init__(self, repo : GameRepo) -> None:
         self._repo = repo
 
-    def get_next_move(self, game: Game) -> Game:
+    async def get_next_move(self, game: Game) -> Game:
         board = game.board
         best_score = float('-inf')
         best_move = None
@@ -42,7 +43,7 @@ class GameService(IGameService):
         final_board = self._copy_board(board)
         final_board.grid[best_move[0]][best_move[1]] = self.COMPUTER_SYMBOL
         updated_game = Game(id=game.id, board=final_board)
-        self._repo.save(updated_game)
+        await self._repo.save(updated_game)
         return updated_game
     
     def validate_field(self, old_game: Game, new_game: Game) -> bool:
@@ -122,18 +123,18 @@ class GameService(IGameService):
         new_grid = [row[:] for row in board.grid]
         return Board(grid=new_grid)
     
-    def get_game_by_id(self, id: UUID) -> Game:
-        game = self._repo.find_by_id(id)
+    async def get_game_by_id(self, id: UUID) -> Game:
+        game = await self._repo.find_by_id(id)
         if game is None:
             raise ValueError(f"Game with id {id} not found")
         return game
 
-    def process_user_move_and_computer_response(self, user_game: Game) -> Game:
-        self._repo.save(user_game)
+    async def process_user_move_and_computer_response(self, user_game: Game) -> Game:
+        await self._repo.save(user_game)
         if self.is_game_over(user_game):
             return user_game
-        updated_game = self.get_next_move(user_game)
+        updated_game = await self.get_next_move(user_game)
         return updated_game
     
-    def save_game(self, game: Game) -> None:
-        self._repo.save(game)
+    async def save_game(self, game: Game) -> None:
+        await self._repo.save(game)

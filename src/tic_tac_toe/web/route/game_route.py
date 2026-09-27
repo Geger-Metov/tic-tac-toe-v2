@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
+from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
 
 from tic_tac_toe.web.model.request_model import GameRequest
@@ -7,13 +8,16 @@ from tic_tac_toe.web.mapper.domain_web_mapper import GameWebMapper
 from tic_tac_toe.domain.service.game_interface import IGameService
 from tic_tac_toe.domain.model.game import Game
 from tic_tac_toe.domain.model.board import Board
+from tic_tac_toe.infrastructure.database.session import get_db_session
 
 router = APIRouter(prefix="/game", tags=["game"])
 
-def get_game_service(request: Request) -> IGameService:
-    """Извлекает сервис из DI-контейнера, сохранённого в app.state."""
+
+def get_game_service(request: Request, session: AsyncSession = Depends(get_db_session)) -> IGameService:
+    """Извлекает контейнер из app.state и собирает сервис с request-scoped Session."""
     container = request.app.state.container
-    return container.get_game_service()
+    return container.get_game_service(session)
+
 
 @router.post("/{game_id}", response_model=GameResponse)
 async def make_move(
@@ -33,12 +37,11 @@ async def make_move(
 
     # 3. Загружаем или создаём новую игру
     try:
-        current_game = service.get_game_by_id(id)
+        current_game = await service.get_game_by_id(id)
     except ValueError:
         # Игра не найдена — создаём новую с пустым полем
         current_game = Game(id=id, board=Board.create_empty())
-        # Сохраняем её в репозитории (можно через сервис, если добавить метод)
-        service.save_game(current_game)  # или service.save_game(current_game)
+        await service.save_game(current_game)
 
     # 4. Валидация хода пользователя
     if not service.validate_field(current_game, incoming_game):
@@ -48,11 +51,11 @@ async def make_move(
         )
 
     # 5. Сохраняем ход пользователя
-    service.save_game(incoming_game)  # или service.save_game(incoming_game)
+    await service.save_game(incoming_game)  # или service.save_game(incoming_game)
 
     # 6. Если игра не окончена, получаем ход компьютера
     if not service.is_game_over(incoming_game):
-        updated_game = service.get_next_move(incoming_game)
+        updated_game = await service.get_next_move(incoming_game)
     else:
         updated_game = incoming_game
 

@@ -1,23 +1,20 @@
-from tic_tac_toe.datasource.storage.game_storage import GameStorage
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from tic_tac_toe.datasource.repository.game_repository import GameRepo
 from tic_tac_toe.datasource.service.game_service_impl import GameService
 from tic_tac_toe.domain.service.game_interface import IGameService
 
 class Container:
     """
-    DI-контейнер. Создаёт и хранит экземпляры всех зависимостей.
-    Обеспечивает singleton-поведение для хранилища и сервисов.
+    DI-контейнер.
+
+    GameStorage больше не нужен: данные теперь хранятся в PostgreSQL, доступ к
+    которой даёт SQLAlchemy AsyncSession. Session привязана к жизненному циклу
+    одного HTTP-запроса (см. infrastructure.database.session.get_db_session),
+    поэтому GameRepo/GameService здесь принципиально НЕ синглтоны — они
+    создаются заново на каждый запрос, с той самой request-scoped session.
     """
-    def __init__(self) -> None:
-        # 1. Потокобезопасное хранилище (один экземпляр на всё приложение)
-        self._storage = GameStorage()
 
-        # 2. Репозиторий, работающий с хранилищем
-        self._repo = GameRepo(self._storage)
-
-        # 3. Сервис бизнес-логики, реализующий интерфейс IGameService
-        self._game_service: IGameService = GameService(self._repo)
-
-    def get_game_service(self) -> IGameService:
-        """Возвращает готовый к использованию сервис."""
-        return self._game_service
+    def get_game_service(self, session: AsyncSession) -> IGameService:
+        repo = GameRepo(session)
+        return GameService(repo)
