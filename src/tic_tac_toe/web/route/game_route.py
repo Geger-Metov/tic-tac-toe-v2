@@ -9,6 +9,7 @@ from tic_tac_toe.domain.service.game_interface import IGameService
 from tic_tac_toe.domain.model.game import Game
 from tic_tac_toe.domain.model.board import Board
 from tic_tac_toe.infrastructure.database.session import get_db_session
+from tic_tac_toe.web.security.user_authenticator import get_current_user_id
 
 router = APIRouter(prefix="/game", tags=["game"])
 
@@ -23,7 +24,11 @@ def get_game_service(request: Request, session: AsyncSession = Depends(get_db_se
 async def make_move(
     id: UUID,
     request_data: GameRequest,
-    service: IGameService = Depends(get_game_service)
+    service: IGameService = Depends(get_game_service),
+    # UserAuthenticator: требуем авторизацию per ТЗ ("require authorization for
+    # all other endpoints"). user_id пока не используется в логике хода —
+    # он понадобится в Задании 3, чтобы привязать символ (X/O) к конкретному игроку.
+    user_id: UUID = Depends(get_current_user_id),
 ):
     # 1. Проверка совпадения UUID
     if request_data.id != id:

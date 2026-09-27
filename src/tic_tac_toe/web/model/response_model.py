@@ -5,6 +5,7 @@ from typing import List
 class BoardResponse(BaseModel):
     grid: List[List[int]]
 
+
 class GameResponse(BaseModel):
     game_id: UUID = Field(..., alias="id")  # В JSON будет поле "id"
     board: BoardResponse
@@ -13,3 +14,12 @@ class GameResponse(BaseModel):
         "validate_by_name": True,   # аналог allow_population_by_field_name
         "populate_by_name": True    # разрешает передавать "game_id" при создании объекта
     }
+
+
+class SignUpResponse(BaseModel):
+    success: bool
+    id: UUID
+
+
+class LoginResponse(BaseModel):
+    user_id: UUID

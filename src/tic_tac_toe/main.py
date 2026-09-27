@@ -1,12 +1,14 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
-from tic_tac_toe.web.route.game_route import router
+from tic_tac_toe.web.route.game_route import router as game_router
+from tic_tac_toe.web.route.auth_route import router as auth_router
 from tic_tac_toe.di.container import Container
 from tic_tac_toe.infrastructure.database.base import Base
 from tic_tac_toe.infrastructure.database.session import engine
-# Импорт модели нужен, чтобы она зарегистрировалась в Base.metadata до create_all.
+# Импорт моделей нужен, чтобы они зарегистрировались в Base.metadata до create_all.
 from tic_tac_toe.infrastructure.persistence.model.game_model import GameModel  # noqa: F401
+from tic_tac_toe.infrastructure.persistence.model.user_model import UserModel  # noqa: F401
 
 
 @asynccontextmanager
@@ -32,7 +34,8 @@ def create_app() -> FastAPI:
     container = Container()
     app.state.container = container
     # Подключаем роутер с эндпоинтами
-    app.include_router(router)
+    app.include_router(auth_router)
+    app.include_router(game_router)
     return app
 
 

@@ -25,3 +25,8 @@ class BoardRequest(BaseModel):
 class GameRequest(BaseModel):
     id: UUID = Field(..., alias="id")  # JSON может приходить с ключом "id"
     board: BoardRequest
+
+
+class SignUpRequest(BaseModel):
+    login: str = Field(..., min_length=3, max_length=255)
+    password: str = Field(..., min_length=6, max_length=255)
