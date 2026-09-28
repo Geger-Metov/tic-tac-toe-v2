@@ -1,71 +1,138 @@
 from uuid import UUID
 
-from tic_tac_toe.domain.service.game_interface import IGameService
-from tic_tac_toe.domain.model.game import Game
+from tic_tac_toe.domain.exception.game_exceptions import (
+    GameNotFoundError,
+    GameNotJoinableError,
+    InvalidMoveError,
+    InvalidTurnError,
+    NotParticipantError,
+)
 from tic_tac_toe.domain.model.board import Board
+from tic_tac_toe.domain.model.game import COMPUTER_ID, Game, O_SYMBOL, X_SYMBOL
+from tic_tac_toe.domain.model.game_state import Draw, PlayerTurn, Win
+from tic_tac_toe.domain.service.game_interface import IGameService
 from tic_tac_toe.datasource.repository.game_repository import GameRepo
 
 
 class GameService(IGameService):
-    HUMAN_SYMBOL = 1
-    COMPUTER_SYMBOL = -1
     WIN_SCORE = 10
     DRAW_SCORE = 0
 
     def __init__(self, repo : GameRepo) -> None:
         self._repo = repo
+    
+    async def create_game(self, creator_id: UUID, vs_computer: bool) -> Game:
+        game = Game.create_new(creator_id=creator_id, vs_computer=vs_computer)
+        await self._repo.save(game)
+        return game
 
-    async def get_next_move(self, game: Game) -> Game:
-        board = game.board
+    async def get_game_by_id(self, id: UUID) -> Game:
+        game = await self._repo.find_by_id(id)
+        if game is None:
+            raise GameNotFoundError(f"Game with id {id} not found")
+        return game
+
+    async def get_available_games(self) -> list[Game]:
+        return await self._repo.find_waiting_games()
+
+    async def join_game(self, game_id: UUID, user_id: UUID) -> Game:
+        game = await self.get_game_by_id(game_id)
+
+        if game.player_o_id is not None:
+            raise GameNotJoinableError("Game is not waiting for a player")
+        if game.player_x_id == user_id:
+            raise GameNotJoinableError("Cannot join your own game")
+
+        joined_game = Game(
+            id=game.id,
+            board=game.board,
+            player_x_id=game.player_x_id,
+            player_o_id=user_id,
+            # Создатель (X) всегда ходит первым.
+            state=PlayerTurn(game.player_x_id),
+        )
+        await self._repo.save(joined_game)
+        return joined_game
+
+    async def make_move(self, game_id: UUID, user_id: UUID, new_board: Board) -> Game:
+        game = await self.get_game_by_id(game_id)
+
+        if not game.is_participant(user_id):
+            raise NotParticipantError()
+
+        if not (isinstance(game.state, PlayerTurn) and game.state.player_id == user_id):
+            raise InvalidTurnError()
+
+        if not self._validate_move(game, user_id, new_board):
+            raise InvalidMoveError()
+
+        game = self._apply_move(game, new_board, user_id)
+        await self._repo.save(game)
+
+        # Если очередь дошла до компьютера — считаем его ответ сразу же,
+        # синхронно, внутри этого же запроса: клиент никогда не увидит
+        # промежуточное состояние PlayerTurn(COMPUTER_ID) и не должен сам
+        # отдельно "запрашивать ход компьютера".
+        if isinstance(game.state, PlayerTurn) and game.state.player_id == COMPUTER_ID:
+            computer_board = self._compute_best_move(game.board)
+            game = self._apply_move(game, computer_board, COMPUTER_ID)
+            await self._repo.save(game)
+
+        return game
+
+
+    def _validate_move(self, game: Game, user_id: UUID, new_board: Board) -> bool:
+            symbol = game.symbol_for(user_id)        
+            changes = 0
+            for i in range(3):
+                for j in range(3):
+                    old_cell =  game.board.get_cell(i, j)
+                    new_cell = new_board.get_cell(i, j)
+                    if old_cell != new_cell:
+                        changes += 1
+                        if not (old_cell == 0 and new_cell == symbol):
+                            return False
+            return changes == 1
+
+    def _apply_move(self, game: Game, new_board: Board, mover_id: UUID) -> Game:
+        """Возвращает новую Game с обновлённой доской и пересчитанным состоянием."""
+        winner_symbol = self._check_winner(new_board)
+        if winner_symbol != 0:
+            new_state = Win(mover_id)
+        elif not new_board.has_empty_cells():
+            new_state = Draw()
+        else:
+            opponent_id = game.opponent_of(mover_id)
+            new_state = PlayerTurn(opponent_id)
+
+        return Game(
+            id=game.id,
+            board=new_board,
+            player_x_id=game.player_x_id,
+            player_o_id=game.player_o_id,
+            state=new_state,
+        )
+
+    def _compute_best_move(self, board: Board) -> Board:
         best_score = float('-inf')
         best_move = None
 
-        # Перебираем все пустые клетки (возможные ходы компьютера)
         for i in range(3):
             for j in range(3):
                 if board.get_cell(i, j) == 0:
-                    # Создаём копию доски и делаем ход компьютера
-                    new_board = self._copy_board(board)
-                    new_board.grid[i][j] = self.COMPUTER_SYMBOL
-
-                    # Вызываем минимакс для оценки этого хода (следующим ходит человек => минимизирующий)
-                    score = self._minimax(new_board, 0, False)
-
+                    candidate = self._copy_board(board)
+                    candidate.grid[i][j] = O_SYMBOL
+                    score = self._minimax(candidate, 0, is_maximizing=False)
                     if score > best_score:
                         best_score = score
                         best_move = (i, j)
 
-        # Если best_move не назначен (доска полная), возвращаем исходную игру
         if best_move is None:
-            return game
+            return board
 
-        # Применяем лучший ход и создаём новую игру
-        final_board = self._copy_board(board)
-        final_board.grid[best_move[0]][best_move[1]] = self.COMPUTER_SYMBOL
-        updated_game = Game(id=game.id, board=final_board)
-        await self._repo.save(updated_game)
-        return updated_game
-    
-    def validate_field(self, old_game: Game, new_game: Game) -> bool:
-        if old_game.id != new_game.id:
-            return False
-        
-        changes = 0
-        for i in range(3):
-            for j in range(3):
-                old_cell =  old_game.board.get_cell(i, j)
-                new_cell = new_game.board.get_cell(i, j)
-                if old_cell != new_cell:
-                    changes += 1
-                    if not (old_cell == 0 and new_cell == 1):
-                        return False
-        return changes == 1
-    
-    def is_game_over(self, game: Game) -> bool:
-        winner = self._check_winner(game.board)
-        if winner != 0:
-            return True
-        return not game.board.has_empty_cells()
+        res = self._copy_board(board)
+        res.grid[best_move[0]][best_move[1]] = O_SYMBOL
+        return res
 
     def _check_winner(self, board: Board) -> int:
         """Возвращает 1 (победа X), -1 (победа O) или 0 (нет победителя)."""
@@ -89,11 +156,10 @@ class GameService(IGameService):
                               False, если ход человека (минимизирующего)
         :return: оценка позиции (с точки зрения компьютера)
         """
-        # Проверяем терминальное состояние
         winner = self._check_winner(board)
-        if winner == self.COMPUTER_SYMBOL:
+        if winner == O_SYMBOL:
             return self.WIN_SCORE - depth   # быстрая победа предпочтительнее
-        elif winner == self.HUMAN_SYMBOL:
+        elif winner == X_SYMBOL:
             return -self.WIN_SCORE + depth  # оттягиваем поражение
         elif not board.has_empty_cells():
             return self.DRAW_SCORE
@@ -103,9 +169,9 @@ class GameService(IGameService):
             for i in range(3):
                 for j in range(3):
                     if board.get_cell(i, j) == 0:
-                        new_board = self._copy_board(board)
-                        new_board.grid[i][j] = self.COMPUTER_SYMBOL
-                        score = self._minimax(new_board, depth + 1, False)
+                        candidate = self._copy_board(board)
+                        candidate.grid[i][j] = O_SYMBOL
+                        score = self._minimax(candidate, depth + 1, False)
                         best = max(best, score)
             return int(best)
         else:
@@ -113,28 +179,12 @@ class GameService(IGameService):
             for i in range(3):
                 for j in range(3):
                     if board.get_cell(i, j) == 0:
-                        new_board = self._copy_board(board)
-                        new_board.grid[i][j] = self.HUMAN_SYMBOL
-                        score = self._minimax(new_board, depth + 1, True)
+                        candidate = self._copy_board(board)
+                        candidate.grid[i][j] = X_SYMBOL
+                        score = self._minimax(candidate, depth + 1, True)
                         best = min(best, score)
             return int(best)
 
     def _copy_board(self, board: Board) -> Board:
         new_grid = [row[:] for row in board.grid]
         return Board(grid=new_grid)
-    
-    async def get_game_by_id(self, id: UUID) -> Game:
-        game = await self._repo.find_by_id(id)
-        if game is None:
-            raise ValueError(f"Game with id {id} not found")
-        return game
-
-    async def process_user_move_and_computer_response(self, user_game: Game) -> Game:
-        await self._repo.save(user_game)
-        if self.is_game_over(user_game):
-            return user_game
-        updated_game = await self.get_next_move(user_game)
-        return updated_game
-    
-    async def save_game(self, game: Game) -> None:
-        await self._repo.save(game)

@@ -2,67 +2,102 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
 
-from tic_tac_toe.web.model.request_model import GameRequest
-from tic_tac_toe.web.model.response_model import GameResponse
-from tic_tac_toe.web.mapper.domain_web_mapper import GameWebMapper
+from tic_tac_toe.domain.exception.game_exceptions import (
+    GameNotFoundError,
+    GameNotJoinableError,
+    InvalidMoveError,
+    InvalidTurnError,
+    NotParticipantError,
+)
 from tic_tac_toe.domain.service.game_interface import IGameService
-from tic_tac_toe.domain.model.game import Game
-from tic_tac_toe.domain.model.board import Board
 from tic_tac_toe.infrastructure.database.session import get_db_session
+from tic_tac_toe.web.mapper.domain_web_mapper import GameWebMapper
+from tic_tac_toe.web.model.request_model import CreateGameRequest, MoveRequest
+from tic_tac_toe.web.model.response_model import GameResponse
 from tic_tac_toe.web.security.user_authenticator import get_current_user_id
 
 router = APIRouter(prefix="/game", tags=["game"])
 
 
-def get_game_service(request: Request, session: AsyncSession = Depends(get_db_session)) -> IGameService:
-    """Извлекает контейнер из app.state и собирает сервис с request-scoped Session."""
+def get_game_service(
+    request: Request,
+    session: AsyncSession = Depends(get_db_session),
+) -> IGameService:
     container = request.app.state.container
     return container.get_game_service(session)
 
-
-@router.post("/{game_id}", response_model=GameResponse)
-async def make_move(
-    id: UUID,
-    request_data: GameRequest,
+@router.post("", response_model=GameResponse, status_code=status.HTTP_201_CREATED)
+async def create_game(
+    request_data: CreateGameRequest,
     service: IGameService = Depends(get_game_service),
-    # UserAuthenticator: требуем авторизацию per ТЗ ("require authorization for
-    # all other endpoints"). user_id пока не используется в логике хода —
-    # он понадобится в Задании 3, чтобы привязать символ (X/O) к конкретному игроку.
     user_id: UUID = Depends(get_current_user_id),
 ):
-    # 1. Проверка совпадения UUID
-    if request_data.id != id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Game ID in URL and body must match"
-        )
+    """Создаёт новую игру с человеком (ждёт второго игрока) или с компьютером."""
+    game = await service.create_game(creator_id=user_id, vs_computer=request_data.vs_computer)
+    return GameWebMapper.domain_to_response(game)
 
-    # 2. Преобразуем запрос в доменную модель
-    incoming_game = GameWebMapper.request_to_domain(request_data)
+# Важно: этот маршрут должен быть объявлен РАНЬШЕ "/{game_id}" — иначе FastAPI
+# попытается распарсить "available" как UUID для {game_id} и вернёт 422,
+# так и не дойдя до этого обработчика.
+@router.get("/available", response_model=list[GameResponse])
+async def list_available_games(service: IGameService = Depends(get_game_service)):
+    """Игры, ожидающие второго игрока-человека (создатель ждёт присоединения)."""
+    games = await service.get_available_games()
+    return [GameWebMapper.domain_to_response(g) for g in games]
 
-    # 3. Загружаем или создаём новую игру
+@router.get("/{game_id}", response_model=GameResponse)
+async def get_game(
+    game_id: UUID,
+    service: IGameService = Depends(get_game_service),
+):
     try:
-        current_game = await service.get_game_by_id(id)
-    except ValueError:
-        # Игра не найдена — создаём новую с пустым полем
-        current_game = Game(id=id, board=Board.create_empty())
-        await service.save_game(current_game)
+        game = await service.get_game_by_id(game_id)
+    except GameNotFoundError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Game not found")
+    return GameWebMapper.domain_to_response(game)
 
-    # 4. Валидация хода пользователя
-    if not service.validate_field(current_game, incoming_game):
+
+@router.post("/{game_id}/join", response_model=GameResponse)
+async def join_game(
+    game_id: UUID,
+    service: IGameService = Depends(get_game_service),
+    user_id: UUID = Depends(get_current_user_id),
+):
+    try:
+        game = await service.join_game(game_id, user_id)
+    except GameNotFoundError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Game not found")
+    except GameNotJoinableError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+    return GameWebMapper.domain_to_response(game)
+
+@router.patch("/{game_id}", response_model=GameResponse)
+async def make_move(
+    game_id: UUID,
+    request_data: MoveRequest,
+    service: IGameService = Depends(get_game_service),
+    user_id: UUID = Depends(get_current_user_id),
+):
+
+    new_board = GameWebMapper.board_request_to_domain(request_data.board)
+
+    try:
+        game = await service.make_move(game_id, user_id, new_board)
+    except GameNotFoundError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Game not found")
+    except NotParticipantError:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not a participant of this game",
+        )
+    except InvalidTurnError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="It's not your turn, the game hasn't started, or it's already finished",
+        )
+    except InvalidMoveError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid move: you can only change one empty cell to X"
+            detail="Invalid move: change exactly one empty cell to your own symbol",
         )
-
-    # 5. Сохраняем ход пользователя
-    await service.save_game(incoming_game)  # или service.save_game(incoming_game)
-
-    # 6. Если игра не окончена, получаем ход компьютера
-    if not service.is_game_over(incoming_game):
-        updated_game = await service.get_next_move(incoming_game)
-    else:
-        updated_game = incoming_game
-
-    # 7. Возвращаем ответ
-    return GameWebMapper.domain_to_response(updated_game)
+    return GameWebMapper.domain_to_response(game)

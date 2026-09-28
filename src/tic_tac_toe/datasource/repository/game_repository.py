@@ -1,11 +1,11 @@
 from uuid import UUID
 from typing import Optional
-
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from tic_tac_toe.domain.model.game import Game as DomainGame
 from tic_tac_toe.datasource.mapper.domain_data_mapper import to_data, to_domain
-from tic_tac_toe.infrastructure.persistence.model.game_model import GameModel
+from tic_tac_toe.infrastructure.persistence.model.game_model import GameModel, GameStatus
 
 
 class GameRepo:
@@ -24,3 +24,8 @@ class GameRepo:
             return None
         
         return to_domain(data_model)
+
+    async def find_waiting_games(self) -> list[DomainGame]:
+        stmt = select(GameModel).where(GameModel.status == GameStatus.WAITING_FOR_PLAYER)
+        res = await self._session.execute(stmt)
+        return [to_domain(model) for model in res.scalars().all()]

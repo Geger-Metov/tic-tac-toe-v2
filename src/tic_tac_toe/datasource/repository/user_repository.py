@@ -15,12 +15,12 @@ class UserRepo:
     async def save(self, user: DomainUser) -> None:
         await self._session.merge(to_data(user))
 
-    async def find_by_login(self, login: str) -> DomainUser | None:
+    async def find_by_login(self, login: str) -> Optional[DomainUser]:
         stmt = select(UserModel).where(UserModel.login == login)
         result = await self._session.execute(stmt)
         data_model =  result.scalar_one_or_none()
         return to_domain(data_model) if data_model is not None else None
 
-    async def find_by_id(self, id: UUID) -> DomainUser | None:
+    async def find_by_id(self, id: UUID) -> Optional[DomainUser]:
         data_model = await self._session.get(UserModel, id)
         return to_domain(data_model) if data_model is not None else None

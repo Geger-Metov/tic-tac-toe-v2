@@ -22,10 +22,10 @@ class UserService(IUserService):
         await self._repo.save(user)
         return user
 
-    async def get_by_login(self, login: str) -> User | None:
+    async def get_by_login(self, login: str) -> Optional[User]:
         return await self._repo.find_by_login(login)
 
-    async def get_by_id(self, id: UUID) -> User | None:
+    async def get_by_id(self, id: UUID) -> Optional[User]:
         return await self._repo.find_by_id(id)
 
     def verify_password(self, user: User, password: str) -> bool:

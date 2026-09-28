@@ -4,6 +4,7 @@ from uuid import UUID
 
 from tic_tac_toe.domain.model.user import User
 
+
 class IUserService(ABC):
     @abstractmethod
     async def register(self, login: str, password: str) -> User:

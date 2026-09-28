@@ -1,13 +1,12 @@
 from pydantic import BaseModel, Field, field_validator
-from uuid import UUID
-from typing import List
+
 
 class BoardRequest(BaseModel):
-    grid: List[List[int]] = Field(
+    grid: list[list[int]] = Field(
         ...,
         min_length=3,
         max_length=3,
-        description="3x3 игровое поле: 0 - пусто, 1 - X (человек), -1 - O (компьютер)"
+        description="3x3 игровое поле: 0 - пусто, 1 - X, -1 - O"
     )
 
     @field_validator('grid')
@@ -22,8 +21,15 @@ class BoardRequest(BaseModel):
                     raise ValueError('cell value must be -1, 0, or 1')
         return v
 
-class GameRequest(BaseModel):
-    id: UUID = Field(..., alias="id")  # JSON может приходить с ключом "id"
+
+class CreateGameRequest(BaseModel):
+    vs_computer: bool = Field(
+        default=False,
+        description="true — соперник компьютер (можно ходить сразу); false — ждём второго игрока"
+    )
+
+
+class MoveRequest(BaseModel):
     board: BoardRequest
 
 
