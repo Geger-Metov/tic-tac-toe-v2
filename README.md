@@ -7,7 +7,8 @@ Tic-Tac-Toe REST API: FastAPI + SQLAlchemy (async) + PostgreSQL, с алгори
 
 ```bash
 uv sync                     # создаст .venv и поставит зависимости из uv.lock
-cp .env.example .env        # и поправь значения под себя
+cp .env.example .env        # и поправь значения под себя (нужна доступная PostgreSQL)
+uv run alembic upgrade head # применить миграции — без этого таблиц в БД не будет
 uv run uvicorn tic_tac_toe.main:app --reload --app-dir src
 ```
 
@@ -16,8 +17,32 @@ uv run uvicorn tic_tac_toe.main:app --reload --app-dir src
 ```bash
 cp .env.example .env
 docker compose up --build
-# или, для разработки с live-reload при изменении src/:
+# или, для разработки с live-reload при изменении src/ или migrations/:
 docker compose watch
+```
+Миграции применяются автоматически при старте контейнера `app`
+(см. `docker-entrypoint.sh`) — руками ничего гонять не нужно.
+
+## Миграции базы данных (Alembic)
+
+Схему БД версионирует Alembic (`migrations/`), а не `Base.metadata.create_all()`.
+
+```bash
+# применить все ещё не применённые миграции
+uv run alembic upgrade head
+
+# откатить последнюю миграцию
+uv run alembic downgrade -1
+
+# после того как поменял SQLAlchemy-модель — сгенерировать новую миграцию
+# (нужна доступная БД, alembic сравнивает модели с реальной схемой)
+uv run alembic revision --autogenerate -m "описание изменения"
+# всегда проверяй сгенерированный файл в migrations/versions/ перед коммитом —
+# autogenerate не идеален (например, не всегда видит переименования колонок)
+
+# посмотреть текущую версию БД / полную историю
+uv run alembic current
+uv run alembic history
 ```
 
 ## Добавление зависимости

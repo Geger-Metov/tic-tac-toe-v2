@@ -1,24 +1,14 @@
-from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from tic_tac_toe.web.route.game_route import router as game_router
 from tic_tac_toe.web.route.auth_route import router as auth_router
+from tic_tac_toe.web.route.user_route import router as user_router
 from tic_tac_toe.di.container import Container
-from tic_tac_toe.infrastructure.database.base import Base
-from tic_tac_toe.infrastructure.database.session import engine
-# Импорт моделей нужен, чтобы они зарегистрировались в Base.metadata до create_all.
-from tic_tac_toe.infrastructure.persistence.model.game_model import GameModel  # noqa: F401
-from tic_tac_toe.infrastructure.persistence.model.user_model import UserModel  # noqa: F401
 
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Создаём таблицы при старте, если их ещё нет.
-    # Для учебного проекта этого достаточно; в реальном проекте здесь были бы
-    # Alembic-миграции вместо create_all.
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    yield
+# Схему БД теперь целиком создаёт/версионирует Alembic (см. migrations/ и
+# docker-entrypoint.sh, который гоняет "alembic upgrade head" перед стартом
+# сервера) — Base.metadata.create_all() здесь больше не нужен и намеренно
+# убран, чтобы не было двух источников правды о схеме одновременно.
 
 
 def create_app() -> FastAPI:
@@ -28,7 +18,6 @@ def create_app() -> FastAPI:
         version="2.0.0",
         docs_url="/docs",        # Интерактивная документация Swagger
         redoc_url="/redoc",       # Альтернативная документация ReDoc
-        lifespan=lifespan,
     )
     # Создаём DI-контейнер и сохраняем в состоянии приложения
     container = Container()
@@ -36,6 +25,7 @@ def create_app() -> FastAPI:
     # Подключаем роутер с эндпоинтами
     app.include_router(auth_router)
     app.include_router(game_router)
+    app.include_router(user_router)
     return app
 
 

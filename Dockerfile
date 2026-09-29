@@ -16,6 +16,10 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --locked --no-dev
 
 COPY src/tic_tac_toe ./tic_tac_toe/
+COPY alembic.ini ./
+COPY migrations ./migrations/
+COPY docker-entrypoint.sh ./
+RUN chmod +x docker-entrypoint.sh
 
 # Кладём venv/bin в PATH, чтобы не писать "uv run" перед каждой командой
 ENV PATH="/app/.venv/bin:$PATH" \
@@ -24,4 +28,4 @@ ENV PATH="/app/.venv/bin:$PATH" \
 
 EXPOSE 8000
 
-CMD ["uvicorn", "tic_tac_toe.main:app", "--host", "0.0.0.0", "--port", "8000"]
+ENTRYPOINT [ "./docker-entrypoint.sh" ]

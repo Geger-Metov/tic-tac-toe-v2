@@ -35,11 +35,21 @@ services:
           path: ./src/tic_tac_toe
           target: /app/tic_tac_toe
 
+        - action: sync+restart
+          path: ./migrations
+          target: /app/migrations
+
         - action: rebuild
           path: ./pyproject.toml
 
         - action: rebuild
           path: ./uv.lock
+
+        - action: rebuild
+          path: ./alembic.ini
+
+        - action: rebuild
+          path: ./docker-entrypoint.sh
 
 
 # Определяем именованный том для хранения данных PostgreSQL
