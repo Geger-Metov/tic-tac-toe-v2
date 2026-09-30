@@ -11,9 +11,19 @@ dependencies = [
     "asyncpg>=0.31.0",
     "bcrypt>=5.0.0",
     "alembic>=1.20.0",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "httpx>=0.28.1",
 ]
 
 [tool.uv]
 # Это приложение, а не библиотека — не нужно собирать и устанавливать сам
 # проект как пакет (в отличие от uv-дефолта для проектов с pyproject.toml).
 package = false
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+# Позволяет тестам делать "import tic_tac_toe" без --app-dir/PYTHONPATH —
+# pytest сам добавляет src/ в sys.path перед сбором тестов.
+pythonpath = ["src"]
+testpaths = ["tests"]

@@ -29,7 +29,7 @@ class Game:
     state: GameState
 
     @classmethod
-    def create_new(cls, creator_id: UUID, vs_computer: bool) -> 'Game':
+    def create_new(cls, creator_id: UUID, vs_computer: bool) -> "Game":
         """Создатель всегда играет за X. Если соперник — компьютер, он сразу
         занимает слот O и создатель сразу же может ходить; если соперник —
         человек, слот O пустует до join_game()."""
@@ -42,11 +42,11 @@ class Game:
                 state=PlayerTurn(creator_id),
             )
         return cls(
-            id = uuid4(),
-            board = Board.create_empty(),
+            id=uuid4(),
+            board=Board.create_empty(),
             player_x_id=creator_id,
             player_o_id=None,
-            state=PlayerTurn(creator_id),
+            state=WaitingForPlayer(),
         )
 
     @property

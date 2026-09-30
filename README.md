@@ -20,6 +20,7 @@ docker compose up --build
 # или, для разработки с live-reload при изменении src/ или migrations/:
 docker compose watch
 ```
+
 Миграции применяются автоматически при старте контейнера `app`
 (см. `docker-entrypoint.sh`) — руками ничего гонять не нужно.
 
@@ -44,6 +45,23 @@ uv run alembic revision --autogenerate -m "описание изменения"
 uv run alembic current
 uv run alembic history
 ```
+
+## Тесты
+
+```bash
+uv sync                     # dev-группа (pytest/httpx) ставится по умолчанию
+uv run alembic upgrade head # тестам нужна уже смигрированная БД
+uv run pytest               # юнит + интеграционные (последние бьют по реальной БД,
+                             # но каждый тест откатывается — мусора не остаётся)
+
+uv run pytest tests/unit    # только быстрые тесты бизнес-логики, БД не нужна
+uv run pytest -v -k login   # конкретный сценарий
+```
+
+Интеграционные тесты (`tests/integration/`) дёргают приложение в процессе через
+ASGI (без поднятого `uvicorn`/`/docs`), но пишут в ту БД, что указана в
+`DATABASE_URL` — проще всего гонять их с поднятым `docker compose up` (порт
+БД проброшен на хост, см. `POSTGRES_PORT` в `.env`).
 
 ## Добавление зависимости
 
