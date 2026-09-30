@@ -28,10 +28,11 @@ class GameModel(Base):
     """
     __tablename__ = "games"
 
-    id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4)
-    
+    id: Mapped[UUID] = mapped_column(
+        PG_UUID(as_uuid=True), primary_key=True, default=uuid4
+    )
     # Доска хранится как JSON (List[List[int]]); нормализовывать в отдельную
-    # таблицу клеток сейчас избыточно — доска всегда читается/пишется целиком.
+    # таблицу клеток избыточно — доска всегда читается/пишется целиком.
     board: Mapped[list] = mapped_column(JSONB, nullable=False)
 
     player_x_id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), nullable=False)

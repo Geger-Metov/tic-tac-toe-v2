@@ -8,6 +8,8 @@ Tic-Tac-Toe REST API: FastAPI + SQLAlchemy (async) + PostgreSQL, с алгори
 ```bash
 uv sync                     # создаст .venv и поставит зависимости из uv.lock
 cp .env.example .env        # и поправь значения под себя (нужна доступная PostgreSQL)
+                             # .env подхватывается автоматически (python-dotenv) —
+                             # отдельно "грузить" его не нужно
 uv run alembic upgrade head # применить миграции — без этого таблиц в БД не будет
 uv run uvicorn tic_tac_toe.main:app --reload --app-dir src
 ```

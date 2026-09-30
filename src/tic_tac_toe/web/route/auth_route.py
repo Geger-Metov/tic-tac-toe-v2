@@ -1,4 +1,5 @@
 from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from tic_tac_toe.domain.exception.auth_exceptions import UserAlreadyExistsError
@@ -11,7 +12,10 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/signup", response_model=SignUpResponse, status_code=status.HTTP_201_CREATED)
-async def signup(request_data: SignUpRequest, service: IAuthService =  Depends(get_auth_service),):
+async def signup(
+    request_data: SignUpRequest,
+    service: IAuthService = Depends(get_auth_service),
+):
     """Открытый эндпоинт — UserAuthenticator сюда не применяется."""
     try:
         user = await service.register(request_data.login, request_data.password)

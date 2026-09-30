@@ -8,11 +8,12 @@ from tic_tac_toe.infrastructure.database.session import get_db_session
 
 
 def get_auth_service(
-    request: Request, 
+    request: Request,
     session: AsyncSession = Depends(get_db_session),
 ) -> IAuthService:
-    container =  request.app.state.container
+    container = request.app.state.container
     return container.get_auth_service(session)
+
 
 async def get_current_user_id(
     authorization: str | None = Header(default=None),
@@ -36,7 +37,7 @@ async def get_current_user_id(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Missing Authorization header",
-            headers={"WWW-Authenticate": "Basic"}
+            headers={"WWW-Authenticate": "Basic"},
         )
     try:
         return await auth_service.authenticate(authorization)
@@ -44,5 +45,5 @@ async def get_current_user_id(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid login or password",
-            headers={"WWW-Authenticate": "Basic"}
+            headers={"WWW-Authenticate": "Basic"},
         )

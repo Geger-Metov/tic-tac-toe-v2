@@ -18,9 +18,11 @@ class GameService(IGameService):
     WIN_SCORE = 10
     DRAW_SCORE = 0
 
-    def __init__(self, repo : GameRepo) -> None:
+    def __init__(self, repo: GameRepo) -> None:
         self._repo = repo
-    
+
+    # ---- публичный интерфейс -------------------------------------------------
+
     async def create_game(self, creator_id: UUID, vs_computer: bool) -> Game:
         game = Game.create_new(creator_id=creator_id, vs_computer=vs_computer)
         await self._repo.save(game)
@@ -80,19 +82,20 @@ class GameService(IGameService):
 
         return game
 
+    # ---- валидация и применение хода (чистая логика, без I/O) ---------------
 
     def _validate_move(self, game: Game, user_id: UUID, new_board: Board) -> bool:
-            symbol = game.symbol_for(user_id)        
-            changes = 0
-            for i in range(3):
-                for j in range(3):
-                    old_cell =  game.board.get_cell(i, j)
-                    new_cell = new_board.get_cell(i, j)
-                    if old_cell != new_cell:
-                        changes += 1
-                        if not (old_cell == 0 and new_cell == symbol):
-                            return False
-            return changes == 1
+        symbol = game.symbol_for(user_id)
+        changes = 0
+        for i in range(3):
+            for j in range(3):
+                old_cell = game.board.get_cell(i, j)
+                new_cell = new_board.get_cell(i, j)
+                if old_cell != new_cell:
+                    changes += 1
+                    if not (old_cell == 0 and new_cell == symbol):
+                        return False
+        return changes == 1
 
     def _apply_move(self, game: Game, new_board: Board, mover_id: UUID) -> Game:
         """Возвращает новую Game с обновлённой доской и пересчитанным состоянием."""
@@ -112,6 +115,8 @@ class GameService(IGameService):
             player_o_id=game.player_o_id,
             state=new_state,
         )
+
+    # ---- Minimax для хода компьютера (компьютер всегда играет за O) ---------
 
     def _compute_best_move(self, board: Board) -> Board:
         best_score = float('-inf')
@@ -158,9 +163,9 @@ class GameService(IGameService):
         """
         winner = self._check_winner(board)
         if winner == O_SYMBOL:
-            return self.WIN_SCORE - depth   # быстрая победа предпочтительнее
+            return self.WIN_SCORE - depth
         elif winner == X_SYMBOL:
-            return -self.WIN_SCORE + depth  # оттягиваем поражение
+            return -self.WIN_SCORE + depth
         elif not board.has_empty_cells():
             return self.DRAW_SCORE
 

@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 from tic_tac_toe.infrastructure.database.config import get_database_url
 
-engine : AsyncEngine = create_async_engine(get_database_url(), echo=False)
+engine: AsyncEngine = create_async_engine(get_database_url(), echo=False)
 
 # expire_on_commit=False: после commit() атрибуты объектов остаются доступны без
 # повторного похода в БД — удобно, т.к. мы дальше мапим объект обратно в domain-модель.

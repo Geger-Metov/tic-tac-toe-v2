@@ -18,6 +18,7 @@ def to_data(domain: DomainGame) -> GameModel:
         status_player_id=status_player_id,
     )
 
+
 def to_domain(data: GameModel) -> DomainGame:
     return DomainGame(
         id=data.id,
@@ -26,6 +27,7 @@ def to_domain(data: GameModel) -> DomainGame:
         player_o_id=data.player_o_id,
         state=_columns_to_state(data.status, data.status_player_id),
     )
+
 
 def _state_to_columns(state: GameState) -> Tuple[GameStatus, Optional[UUID]]:
     if isinstance(state, WaitingForPlayer):

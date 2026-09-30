@@ -15,14 +15,14 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="Tic-Tac-Toe API",
         description="REST API для игры в крестики-нолики с алгоритмом Минимакс.",
-        version="2.0.0",
+        version="3.0.0",
         docs_url="/docs",        # Интерактивная документация Swagger
-        redoc_url="/redoc",       # Альтернативная документация ReDoc
+        redoc_url="/redoc",      # Альтернативная документация ReDoc
     )
     # Создаём DI-контейнер и сохраняем в состоянии приложения
     container = Container()
     app.state.container = container
-    # Подключаем роутер с эндпоинтами
+    # Подключаем роутеры с эндпоинтами
     app.include_router(auth_router)
     app.include_router(game_router)
     app.include_router(user_router)

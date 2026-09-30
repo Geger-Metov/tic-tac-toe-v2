@@ -6,4 +6,4 @@ from uuid import UUID
 class User:
     id: UUID
     login: str
-    passwd_hash: str
+    password_hash: str

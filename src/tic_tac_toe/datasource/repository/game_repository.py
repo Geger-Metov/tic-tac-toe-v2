@@ -11,7 +11,7 @@ from tic_tac_toe.infrastructure.persistence.model.game_model import GameModel, G
 class GameRepo:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
-        
+
     async def save(self, game: DomainGame) -> None:
         data_model = to_data(game)
         # merge сам решает insert это или update по первичному ключу (id) —
@@ -22,7 +22,7 @@ class GameRepo:
         data_model = await self._session.get(GameModel, uuid)
         if data_model is None:
             return None
-        
+
         return to_domain(data_model)
 
     async def find_waiting_games(self) -> list[DomainGame]:

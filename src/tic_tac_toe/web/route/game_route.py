@@ -26,6 +26,7 @@ def get_game_service(
     container = request.app.state.container
     return container.get_game_service(session)
 
+
 @router.post("", response_model=GameResponse, status_code=status.HTTP_201_CREATED)
 async def create_game(
     request_data: CreateGameRequest,
@@ -36,14 +37,18 @@ async def create_game(
     game = await service.create_game(creator_id=user_id, vs_computer=request_data.vs_computer)
     return GameWebMapper.domain_to_response(game)
 
+
 # Важно: этот маршрут должен быть объявлен РАНЬШЕ "/{game_id}" — иначе FastAPI
 # попытается распарсить "available" как UUID для {game_id} и вернёт 422,
 # так и не дойдя до этого обработчика.
 @router.get("/available", response_model=list[GameResponse])
-async def list_available_games(service: IGameService = Depends(get_game_service)):
+async def list_available_games(
+service: IGameService = Depends(get_game_service),
+):
     """Игры, ожидающие второго игрока-человека (создатель ждёт присоединения)."""
     games = await service.get_available_games()
     return [GameWebMapper.domain_to_response(g) for g in games]
+
 
 @router.get("/{game_id}", response_model=GameResponse)
 async def get_game(
@@ -70,6 +75,7 @@ async def join_game(
     except GameNotJoinableError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
     return GameWebMapper.domain_to_response(game)
+
 
 @router.patch("/{game_id}", response_model=GameResponse)
 async def make_move(
